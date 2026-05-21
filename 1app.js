@@ -108,13 +108,28 @@
     catch (e) { setStatus('자동 로드 실패: 파일 첨부 사용'); log(`자동 로드 실패: ${e.message}`); }
   }
 
+
+
+  function goSlide(idx){
+    const slides = [...document.querySelectorAll('.slide')];
+    const tabs = [...document.querySelectorAll('.tab-btn')];
+    if(!slides.length) return;
+    const n = ((idx % slides.length) + slides.length) % slides.length;
+    slides.forEach((el,i)=>el.classList.toggle('active', i===n));
+    tabs.forEach((el,i)=>el.classList.toggle('active', i===n));
+  }
+
   function boot() {
     $('logArea').textContent = 'app.js 로드 완료'; setStatus('대기 중');
     $('analyzeBtn').addEventListener('click', async () => { const f = $('fileInput').files && $('fileInput').files[0]; if (!f) return alert('먼저 파일을 선택하세요.'); await loadWorkbookFromArrayBuffer(await f.arrayBuffer(), f.name); });
     $('sampleBtn').addEventListener('click', autoLoad);
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => goSlide(Number(btn.dataset.slide || 0))));
+    const prev = document.getElementById('prevSlide'); if(prev) prev.addEventListener('click', () => { const cur=[...document.querySelectorAll('.slide')].findIndex(s=>s.classList.contains('active')); goSlide(cur-1); });
+    const next = document.getElementById('nextSlide'); if(next) next.addEventListener('click', () => { const cur=[...document.querySelectorAll('.slide')].findIndex(s=>s.classList.contains('active')); goSlide(cur+1); });
     ['filterHQ', 'filterDept', 'filterRegion', 'filterCountry', 'filterChannel', 'filterGrade', 'filterMonth'].forEach(id => $(id).addEventListener('change', applyFilters));
     $('resetFilters').addEventListener('click', () => { ['filterHQ', 'filterDept', 'filterRegion', 'filterCountry', 'filterChannel', 'filterGrade', 'filterMonth'].forEach(id => $(id).value = 'ALL'); applyFilters(); });
     window.addEventListener('resize', () => state.all.length && render());
+    goSlide(0);
     autoLoad();
   }
 
