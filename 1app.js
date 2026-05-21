@@ -68,14 +68,17 @@
     const p={l:120,r:18,t:12,b:16}; drawAxes(ctx,w,h,p);
     const max=Math.max(1,...values), ih=h-p.t-p.b, rw=ih/Math.max(labels.length,1);
     labels.forEach((lab,i)=>{
-      const y=p.t+rw*i+rw*0.15;
-      const bh=Math.max(8,rw*0.68);
-      const len=(values[i]/max)*(w-p.l-p.r);
+      const y=Math.round(p.t+rw*i+rw*0.15)+0.5;
+      const bh=Math.max(8,Math.round(rw*0.62));
+      const len=Math.round((values[i]/max)*(w-p.l-p.r));
       ctx.fillStyle=COLORS[i%COLORS.length];
       ctx.fillRect(p.l,y,len,bh);
-      ctx.fillStyle='#cbd6ef'; ctx.font='10px "Segoe UI", sans-serif'; ctx.textAlign='right';
-      const t = lab.length > 10 ? `${lab.slice(0,10)}…` : lab;
-      ctx.fillText(t,p.l-8,y+bh*0.75);
+      ctx.fillStyle='#cbd6ef';
+      ctx.font='9px "Noto Sans KR","Segoe UI",sans-serif';
+      ctx.textAlign='right';
+      const raw = String(lab || '');
+      const t = raw.length > 7 ? `${raw.slice(0,7)}…` : raw;
+      ctx.fillText(t,p.l-8,Math.round(y+bh*0.72));
     });
   }
 
