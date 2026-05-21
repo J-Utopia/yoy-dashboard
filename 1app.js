@@ -77,7 +77,9 @@
   function renderHeat(cur,base){
     const months=[...new Set(cur.concat(base).map(x=>x.month))].sort();
     const depts=[...new Set(cur.map(x=>x.dept))].slice(0,15);
-    const gc=group(cur,r=>`${r.dept}|${r.month}`), gb=group(base,r=>`${r.dept}|${r.month}`);
+    const gc=new Map(), gb=new Map();
+    cur.forEach(r=>{ const k=`${r.dept}|${r.month}`; if(!gc.has(k)) gc.set(k,[]); gc.get(k).push(r); });
+    base.forEach(r=>{ const k=`${r.dept}|${r.month}`; if(!gb.has(k)) gb.set(k,[]); gb.get(k).push(r); });
     let html='<table class="heat-table"><thead><tr><th>부서</th>'+months.map(m=>`<th>${m.slice(5)}</th>`).join('')+'</tr></thead><tbody>';
     depts.forEach(d=>{ html+=`<tr><td class="heat-row-name">${d}</td>`; months.forEach(m=>{ const c=totals(gc.get(`${d}|${m}`)||[]).pax; const b=totals(gb.get(`${d}|${m}`)||[]).pax; const y=b?c/b:0; html+=`<td>${b?`${(y*100).toFixed(0)}%`:'-'}</td>`;}); html+='</tr>';});
     $('heatmap').innerHTML=html+'</tbody></table>';
