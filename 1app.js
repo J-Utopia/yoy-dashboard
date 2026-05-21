@@ -48,11 +48,34 @@
     const c=$(id); if(!c) return; const {ctx,w,h}=fit(c); ctx.clearRect(0,0,w,h);
     const p={l:44,r:12,t:12,b:40}; drawAxes(ctx,w,h,p);
     const max=Math.max(1,...a,...b), iw=w-p.l-p.r, ih=h-p.t-p.b, gw=iw/Math.max(labels.length,1), bw=Math.max(4,gw*0.3);
+    const showEvery = labels.length > 12 ? 2 : 1;
     labels.forEach((lab,i)=>{
       const x=p.l+gw*i+gw*0.15; const ha=ih*(a[i]/max), hb=ih*(b[i]/max);
       ctx.fillStyle=COLORS[0]; ctx.fillRect(x,h-p.b-ha,bw,ha);
       if(b.some(v=>v>0)){ ctx.fillStyle=COLORS[2]; ctx.fillRect(x+bw+2,h-p.b-hb,bw,hb); }
-      ctx.fillStyle='#cbd6ef'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(String(lab).slice(5),x+bw,h-12);
+      if (i % showEvery === 0) {
+        ctx.fillStyle='#cbd6ef';
+        ctx.font='11px sans-serif';
+        ctx.textAlign='center';
+        const t = String(lab).slice(5);
+        ctx.fillText(t.length > 6 ? `${t.slice(0,6)}…` : t, x+bw, h-12);
+      }
+    });
+  }
+
+  function drawHBars(id, labels, values){
+    const c=$(id); if(!c) return; const {ctx,w,h}=fit(c); ctx.clearRect(0,0,w,h);
+    const p={l:120,r:18,t:12,b:16}; drawAxes(ctx,w,h,p);
+    const max=Math.max(1,...values), ih=h-p.t-p.b, rw=ih/Math.max(labels.length,1);
+    labels.forEach((lab,i)=>{
+      const y=p.t+rw*i+rw*0.15;
+      const bh=Math.max(8,rw*0.68);
+      const len=(values[i]/max)*(w-p.l-p.r);
+      ctx.fillStyle=COLORS[i%COLORS.length];
+      ctx.fillRect(p.l,y,len,bh);
+      ctx.fillStyle='#cbd6ef'; ctx.font='11px sans-serif'; ctx.textAlign='right';
+      const t = lab.length > 10 ? `${lab.slice(0,10)}…` : lab;
+      ctx.fillText(t,p.l-8,y+bh*0.75);
     });
   }
 
@@ -81,7 +104,14 @@
     cur.forEach(r=>{ const k=`${r.dept}|${r.month}`; if(!gc.has(k)) gc.set(k,[]); gc.get(k).push(r); });
     base.forEach(r=>{ const k=`${r.dept}|${r.month}`; if(!gb.has(k)) gb.set(k,[]); gb.get(k).push(r); });
     let html='<table class="heat-table"><thead><tr><th>부서</th>'+months.map(m=>`<th>${m.slice(5)}</th>`).join('')+'</tr></thead><tbody>';
-    depts.forEach(d=>{ html+=`<tr><td class="heat-row-name">${d}</td>`; months.forEach(m=>{ const c=totals(gc.get(`${d}|${m}`)||[]).pax; const b=totals(gb.get(`${d}|${m}`)||[]).pax; const y=b?c/b:0; html+=`<td>${b?`${(y*100).toFixed(0)}%`:'-'}</td>`;}); html+='</tr>';});
+    const cellColor = (v) => {
+      if (!Number.isFinite(v) || v === 0) return 'rgba(255,255,255,.04)';
+      if (v >= 1.2) return 'rgba(46,232,121,.45)';
+      if (v >= 1.0) return 'rgba(57,167,255,.4)';
+      if (v >= 0.8) return 'rgba(255,209,102,.38)';
+      return 'rgba(255,92,138,.42)';
+    };
+    depts.forEach(d=>{ html+=`<tr><td class="heat-row-name">${d}</td>`; months.forEach(m=>{ const c=totals(gc.get(`${d}|${m}`)||[]).pax; const b=totals(gb.get(`${d}|${m}`)||[]).pax; const y=b?c/b:0; html+=`<td style="background:${cellColor(y)}">${b?`${(y*100).toFixed(0)}%`:'-'}</td>`;}); html+='</tr>';});
     $('heatmap').innerHTML=html+'</tbody></table>';
   }
 
@@ -105,11 +135,11 @@
     drawBars('chartRevenueMonthly',months,months.map(m=>totals(m26.get(m)||[]).sales),months.map(m=>totals(m25.get(m)||[]).sales));
 
     const hq=sumBy(cur,'hq').sort((x,y)=>y.sales-x.sales).slice(0,8); drawDonut('chartHQDonut',hq.map(x=>x.sales));
-    const region=sumBy(cur,'region').sort((x,y)=>y.sales-x.sales).slice(0,10); drawBars('chartRegionBar',region.map(x=>x.k),region.map(x=>x.sales),region.map(()=>0));
-    const country=sumBy(cur,'country').sort((x,y)=>y.pax-x.pax).slice(0,12); drawBars('chartCountryTop',country.map(x=>x.k),country.map(x=>x.pax),country.map(()=>0));
+    const region=sumBy(cur,'region').sort((x,y)=>y.sales-x.sales).slice(0,10); drawHBars('chartRegionBar',region.map(x=>x.k),region.map(x=>x.sales));
+    const country=sumBy(cur,'country').sort((x,y)=>y.pax-x.pax).slice(0,12); drawHBars('chartCountryTop',country.map(x=>x.k),country.map(x=>x.pax));
     const ch=sumBy(cur,'channel').sort((x,y)=>y.sales-x.sales).slice(0,8); drawDonut('chartChannelDonut',ch.map(x=>x.sales));
     const gr=sumBy(cur,'grade').sort((x,y)=>y.pax-x.pax).slice(0,8); drawDonut('chartGradeDonut',gr.map(x=>x.pax));
-    const pt=sumBy(cur,'country').sort((x,y)=>y.profit-x.profit).slice(0,12); drawBars('chartProfitTop',pt.map(x=>x.k),pt.map(x=>x.profit),pt.map(()=>0));
+    const pt=sumBy(cur,'country').sort((x,y)=>y.profit-x.profit).slice(0,12); drawHBars('chartProfitTop',pt.map(x=>x.k),pt.map(x=>x.profit));
 
     renderHeat(cur,base); renderInsights(cur,base);
   }
