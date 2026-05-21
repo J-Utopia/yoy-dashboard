@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YoY BI Deck - Executive Interactive Dashboard</title>
+  <link rel="stylesheet" href="1style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="1app.js"></script>
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">Y</div>
+        <div>
+          <h1>YoY BI Deck</h1>
+          <p>Executive Interactive Dashboard</p>
+        </div>
+      </div>
+
+      <section class="upload-card glass-card">
+        <h2>엑셀 데이터 연결</h2>
+        <p>RAW_기준일 / RAW_YOY 시트를 읽어 전체 대시보드를 생성합니다.</p>
+        <input id="fileInput" type="file" accept=".xlsx,.xls" />
+        <div class="upload-actions">
+          <button id="analyzeBtn" class="primary-btn">선택한 파일 분석 시작</button>
+          <button id="sampleBtn" class="ghost-btn">샘플 데이터로 화면 검증</button>
+        </div>
+        <div id="statusPill" class="status-pill">app.js 로드 전</div>
+        <details class="log-box" open>
+          <summary>처리 로그</summary>
+          <pre id="logArea">대기 중</pre>
+        </details>
+      </section>
+
+      <section class="filter-card glass-card">
+        <div class="filter-header">
+          <h2>필터</h2>
+          <button id="resetFilters" class="text-btn">초기화</button>
+        </div>
+        <label>운영본부<select id="filterHQ"><option value="ALL">전체</option></select></label>
+        <label>운영부서<select id="filterDept"><option value="ALL">전체</option></select></label>
+        <label>상품지역<select id="filterRegion"><option value="ALL">전체</option></select></label>
+        <label>상품국가<select id="filterCountry"><option value="ALL">전체</option></select></label>
+        <label>예약경로 기준 분류<select id="filterChannel"><option value="ALL">전체</option></select></label>
+        <label>상품등급<select id="filterGrade"><option value="ALL">전체</option></select></label>
+        <label>출발월<select id="filterMonth"><option value="ALL">전체</option></select></label>
+      </section>
+
+      <section class="control-card glass-card">
+        <h2>슬라이드 컨트롤</h2>
+        <div class="slide-controls">
+          <button id="prevSlide" class="ghost-btn">◀ 이전</button>
+          <button id="nextSlide" class="ghost-btn">다음 ▶</button>
+        </div>
+        <button id="fullscreenBtn" class="primary-btn wide">전체화면 발표모드</button>
+      </section>
+    </aside>
+
+    <main class="deck">
+      <nav class="top-tabs">
+        <button class="tab-btn active" data-slide="0">Executive</button>
+        <button class="tab-btn" data-slide="1">월별 YoY</button>
+        <button class="tab-btn" data-slide="2">부서 히트맵</button>
+        <button class="tab-btn" data-slide="3">지역/국가</button>
+        <button class="tab-btn" data-slide="4">채널/등급</button>
+        <button class="tab-btn" data-slide="5">수익성</button>
+        <button class="tab-btn" data-slide="6">Insight</button>
+      </nav>
+
+      <section class="slide active" data-slide="0">
+        <div class="slide-title">
+          <p>Slide 01</p><h2>Executive Summary</h2><span id="dataScope">엑셀 파일을 선택해 주세요</span>
+        </div>
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="grid-2">
+          <article class="panel large"><h3>월별 모객/매출 YoY Overview</h3><canvas id="chartMonthlyOverview"></canvas></article>
+          <article class="panel"><h3>운영본부 매출 비중</h3><canvas id="chartHQDonut"></canvas><div id="hqLegend" class="legend"></div></article>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="1">
+        <div class="slide-title"><p>Slide 02</p><h2>월별 YoY Trend</h2><span>2026 기준월과 2025 동월을 정렬 비교</span></div>
+        <div class="grid-2">
+          <article class="panel large"><h3>월별 모객 YoY</h3><canvas id="chartPaxMonthly"></canvas></article>
+          <article class="panel large"><h3>월별 매출 YoY</h3><canvas id="chartRevenueMonthly"></canvas></article>
+        </div>
+        <div class="grid-3">
+          <article class="panel"><h3>월별 ASP</h3><canvas id="chartASP"></canvas></article>
+          <article class="panel"><h3>월별 공헌이익률</h3><canvas id="chartMargin"></canvas></article>
+          <article class="panel insight-panel"><h3>월별 관찰 포인트</h3><div id="monthlyInsights"></div></article>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="2">
+        <div class="slide-title"><p>Slide 03</p><h2>부서별 월별 YoY Heatmap</h2><span>어느 부서·월에서 하락/회복이 발생했는지 즉시 식별</span></div>
+        <article class="panel full"><div class="panel-toolbar"><h3>운영부서 × 출발월 모객 YoY</h3><button id="toggleHeatMetric" class="ghost-btn small">매출 YoY로 전환</button></div><div id="heatmap" class="heatmap"></div></article>
+        <div class="grid-2">
+          <article class="panel"><h3>성장 TOP 부서</h3><div id="deptTop" class="rank-list"></div></article>
+          <article class="panel"><h3>하락 주의 부서</h3><div id="deptBottom" class="rank-list"></div></article>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="3">
+        <div class="slide-title"><p>Slide 04</p><h2>지역 / 국가 포트폴리오</h2><span>지역별 볼륨과 국가별 성과를 동시에 확인</span></div>
+        <div class="grid-2">
+          <article class="panel large"><h3>지역별 모객/매출</h3><canvas id="chartRegionBar"></canvas></article>
+          <article class="panel large"><h3>국가 TOP 15</h3><canvas id="chartCountryTop"></canvas></article>
+        </div>
+        <article class="panel full"><h3>지역 포트폴리오 Treemap</h3><div id="treemap" class="treemap"></div></article>
+      </section>
+
+      <section class="slide" data-slide="4">
+        <div class="slide-title"><p>Slide 05</p><h2>예약경로 / 상품등급</h2><span>판매 채널과 상품 속성이 성과에 미치는 영향 분석</span></div>
+        <div class="grid-3">
+          <article class="panel"><h3>예약경로 비중</h3><canvas id="chartChannelDonut"></canvas><div id="channelLegend" class="legend"></div></article>
+          <article class="panel"><h3>상품등급 비중</h3><canvas id="chartGradeDonut"></canvas><div id="gradeLegend" class="legend"></div></article>
+          <article class="panel"><h3>채널별 ASP/이익률</h3><canvas id="chartChannelProfit"></canvas></article>
+        </div>
+        <article class="panel full"><h3>채널별 YoY Ranking</h3><div id="channelRank" class="rank-list horizontal"></div></article>
+      </section>
+
+      <section class="slide" data-slide="5">
+        <div class="slide-title"><p>Slide 06</p><h2>수익성 & 포지션맵</h2><span>볼륨, 평균판매가, 공헌이익률을 연결해 우선순위 도출</span></div>
+        <div class="grid-2">
+          <article class="panel large"><h3>국가별 Position Map: ASP × 이익률</h3><canvas id="chartBubble"></canvas></article>
+          <article class="panel large"><h3>공헌이익 TOP 12</h3><canvas id="chartProfitTop"></canvas></article>
+        </div>
+        <article class="panel full"><h3>데이터 정합성 체크</h3><div id="qualityPanel" class="quality-grid"></div></article>
+      </section>
+
+      <section class="slide" data-slide="6">
+        <div class="slide-title"><p>Slide 07</p><h2>Insight & Action Points</h2><span>경영진/기획파트 의사결정용 자동 요약</span></div>
+        <div id="insightCards" class="insight-grid"></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
