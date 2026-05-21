@@ -55,7 +55,7 @@
       if(b.some(v=>v>0)){ ctx.fillStyle=COLORS[2]; ctx.fillRect(x+bw+2,h-p.b-hb,bw,hb); }
       if (i % showEvery === 0) {
         ctx.fillStyle='#cbd6ef';
-        ctx.font='11px sans-serif';
+        ctx.font='10px "Segoe UI", sans-serif';
         ctx.textAlign='center';
         const t = String(lab).slice(5);
         ctx.fillText(t.length > 6 ? `${t.slice(0,6)}…` : t, x+bw, h-12);
@@ -73,7 +73,7 @@
       const len=(values[i]/max)*(w-p.l-p.r);
       ctx.fillStyle=COLORS[i%COLORS.length];
       ctx.fillRect(p.l,y,len,bh);
-      ctx.fillStyle='#cbd6ef'; ctx.font='11px sans-serif'; ctx.textAlign='right';
+      ctx.fillStyle='#cbd6ef'; ctx.font='10px "Segoe UI", sans-serif'; ctx.textAlign='right';
       const t = lab.length > 10 ? `${lab.slice(0,10)}…` : lab;
       ctx.fillText(t,p.l-8,y+bh*0.75);
     });
@@ -130,9 +130,13 @@
 
     const m26=group(cur,'month'), m25=group(base,'month');
     const months=[...new Set(cur.concat(base).map(x=>x.month))].sort();
-    drawBars('chartMonthlyOverview',months,months.map(m=>totals(m26.get(m)||[]).pax),months.map(m=>totals(m25.get(m)||[]).pax));
-    drawBars('chartPaxMonthly',months,months.map(m=>totals(m26.get(m)||[]).pax),months.map(m=>totals(m25.get(m)||[]).pax));
-    drawBars('chartRevenueMonthly',months,months.map(m=>totals(m26.get(m)||[]).sales),months.map(m=>totals(m25.get(m)||[]).sales));
+    const pax26 = months.map(m=>totals(m26.get(m)||[]).pax);
+    const pax25 = months.map(m=>totals(m25.get(m)||[]).pax);
+    const sales26 = months.map(m=>totals(m26.get(m)||[]).sales);
+    const sales25 = months.map(m=>totals(m25.get(m)||[]).sales);
+    drawBars('chartMonthlyOverview',months,pax26,pax25);
+    drawBars('chartPaxMonthly',months,pax26,pax25);
+    drawBars('chartRevenueMonthly',months,sales26,sales25);
 
     const hq=sumBy(cur,'hq').sort((x,y)=>y.sales-x.sales).slice(0,8); drawDonut('chartHQDonut',hq.map(x=>x.sales));
     const region=sumBy(cur,'region').sort((x,y)=>y.sales-x.sales).slice(0,10); drawHBars('chartRegionBar',region.map(x=>x.k),region.map(x=>x.sales));
@@ -142,6 +146,27 @@
     const pt=sumBy(cur,'country').sort((x,y)=>y.profit-x.profit).slice(0,12); drawHBars('chartProfitTop',pt.map(x=>x.k),pt.map(x=>x.profit));
 
     renderHeat(cur,base); renderInsights(cur,base);
+
+    // Slide 02 commentary
+    const yoyPax = months.map((m,i)=>({m, v: pax25[i] ? pax26[i]/pax25[i] : 0})).filter(x=>x.v);
+    const yoySales = months.map((m,i)=>({m, v: sales25[i] ? sales26[i]/sales25[i] : 0})).filter(x=>x.v);
+    const bestP = [...yoyPax].sort((a,b)=>b.v-a.v)[0];
+    const weakP = [...yoyPax].sort((a,b)=>a.v-b.v)[0];
+    const bestS = [...yoySales].sort((a,b)=>b.v-a.v)[0];
+    const commentary = [
+      `모객 최고 월: ${bestP ? bestP.m : '-'} (${bestP ? (bestP.v*100).toFixed(1) : '-'}%)`,
+      `모객 주의 월: ${weakP ? weakP.m : '-'} (${weakP ? (weakP.v*100).toFixed(1) : '-'}%)`,
+      `매출 최고 월: ${bestS ? bestS.m : '-'} (${bestS ? (bestS.v*100).toFixed(1) : '-'}%)`,
+      `총 2026 모객 ${fmtNum(c.pax)}명 / 총 2026 매출 ${fmtEok(c.sales)}`
+    ];
+    const mc = $('monthlyCommentary');
+    if (mc) mc.innerHTML = commentary.map(t => `<article class="insight-card"><p>${t}</p></article>`).join('');
+
+    // Slide 05 notes
+    const cn = $('channelNotes');
+    if (cn) cn.innerHTML = ch.slice(0,3).map(x => `<article class="insight-card"><p>${x.k}: ${fmtEok(x.sales)}</p></article>`).join('');
+    const gn = $('gradeNotes');
+    if (gn) gn.innerHTML = gr.slice(0,3).map(x => `<article class="insight-card"><p>${x.k}: ${fmtNum(x.pax)}명</p></article>`).join('');
   }
 
   function goSlide(i){ const slides=[...document.querySelectorAll('.slide')], tabs=[...document.querySelectorAll('.tab-btn')]; state.slide=((i%slides.length)+slides.length)%slides.length; slides.forEach((s,ix)=>s.classList.toggle('active',ix===state.slide)); tabs.forEach((t,ix)=>t.classList.toggle('active',ix===state.slide)); }
